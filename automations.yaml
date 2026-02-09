@@ -1,0 +1,158 @@
+- alias: Self-Consumption Mode
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.home_assistant_price_spike
+      to: 'on'
+  action:
+    - service: select.select_option
+      target:
+        entity_id: select.home_automation_work_mode
+      data:
+        option: self-consumption
+
+- alias: Feed-in Price Control
+  trigger:
+    - platform: state
+      entity_id: sensor.home_assistant_feed_in_price
+      to: -0.01
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 0
+
+- alias: General Price Protection
+  trigger:
+    - platform: state
+      entity_id: sensor.home_assistant_general_price
+      to: -0.01
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 0
+
+- alias: Price Spike Discharge
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.home_assistant_price_spike
+      to: 'on'
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 15000
+
+- alias: Battery Charging to 100%
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      to: 50
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_max_charge_current
+      data:
+        value: 100
+
+- alias: 1 PM Grid Backup Charging
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      below: 40
+    - platform: numeric_state
+      entity_id: sensor.home_assistant_general_price
+      below: 0.06
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_min_soc_on_grid
+      data:
+        value: 50
+
+- alias: 2 PM Grid Charging Cutoff
+  trigger:
+    - platform: time
+      at: '14:00:00'
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_min_soc_on_grid
+      data:
+        value: 0
+
+- alias: Discharge Stop
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      to: 40
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 0
+
+- alias: Critical Low Stop
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      to: 10
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 0
+
+- alias: Resume Discharge
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      to: 15
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 100
+
+- alias: Feed-in Forecast Logic
+  trigger:
+    - platform: state
+      entity_id: sensor.home_assistant_feed_in_forecast
+  action:
+    - choose:
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.home_assistant_feed_in_forecast
+              above: 1.00
+            - condition: template
+              value_template: '{{ count_states( 'sensor.home_assistant_feed_in_forecast') > 10 }}'
+          sequence:
+            - service: number.set_value
+              target:
+                entity_id: number.home_automation_force_discharge_power
+              data:
+                value: 0
+        - conditions:
+            - condition: numeric_state
+              entity_id: sensor.home_assistant_feed_in_forecast
+              above: 0.15
+            - condition: template
+              value_template: '{{ count_states( 'sensor.home_assistant_feed_in_forecast') == 0 }}'
+          sequence:
+            - service: number.set_value
+              target:
+                entity_id: number.home_automation_force_discharge_power
+              data:
+                value: 100
+  default:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 50
