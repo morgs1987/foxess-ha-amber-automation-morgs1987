@@ -1,134 +1,148 @@
-automations:
-  - id: master_automation_strategy
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.feed_in_price
-      above: 1.00
-    condition:
-      - condition: state
-        entity_id: input_boolean.price_spike_state
-        state: 'on'
-    action:
-      service: set_force_discharge_power
-      data:
-        force_discharge_power: 0
+# Home Assistant Automations for Foxess HA Amber Automation
 
-  - id: immediate_spike_discharge
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.feed_in_price
-      above: 0.40
-    condition:
-      - condition: state
-        entity_id: input_boolean.price_spike_state
-        state: 'on'
-      - condition: numeric_state
-        entity_id: sensor.battery_soc
-        above: 40
-    action:
-      service: set_force_discharge_power
+## Master Automation Strategy
+- id: master_automation_strategy
+  alias: "Master Automation Strategy"
+  description: "Master strategy for managing automation operations"
+  trigger:
+    - platform: time
+      at: "00:00:00"
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
       data:
-        force_discharge_power: 15000
+        value: 100
 
-  - id: secondary_rule_discharge
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.feed_in_price
-      above: 0.15
-    condition:
-      - condition: numeric_state
-        entity_id: sensor.solar_power
-        below: 2000
-      - condition: numeric_state
-        entity_id: sensor.battery_soc
-        above: 40
-    action:
-      service: set_force_discharge_power
+## Immediate Spike Discharge
+- id: immediate_spike_discharge
+  alias: "Immediate Spike Discharge"
+  description: "Discharge immediately upon price spike"
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.home_assistant_price_spike
+      to: "on"
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
       data:
-        force_discharge_power: 15000
+        value: 100
 
-  - id: secondary_rule_stop_discharge
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.battery_soc
-      below: 41
-    action:
-      service: set_force_discharge_power
+## Secondary Rule Discharge
+- id: secondary_rule_discharge
+  alias: "Secondary Rule Discharge"
+  description: "Discharges if secondary conditions are met"
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      below: 20
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
       data:
-        force_discharge_power: 0
+        value: 50
 
-  - id: grid_backup_charge_1_pm
-    trigger:
-      platform: time
-      at: '13:00:00'
-    condition:
-      - condition: numeric_state
-        entity_id: sensor.battery_soc
-        below: 40
-      - condition: numeric_state
-        entity_id: sensor.general_price
-        below: 0.06
-    action:
-      service: set_min_soc_on_grid
+## Secondary Rule Stop Discharge
+- id: secondary_rule_stop_discharge
+  alias: "Secondary Rule Stop Discharge"
+  description: "Stops discharge when conditions are safe"
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      above: 30
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
       data:
-        min_soc_on_grid: 50
+        value: 0
 
-  - id: grid_backup_charge_stop_2_pm
-    trigger:
-      platform: time
-      at: '14:00:00'
-    action:
-      service: set_min_soc_on_grid
+## Grid Backup Charge 1 PM
+- id: grid_backup_charge_1pm
+  alias: "Grid Backup Charge 1 PM"
+  description: "Start charging from grid at 1 PM"
+  trigger:
+    - platform: time
+      at: "13:00:00"
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.min_soc_on_grid
       data:
-        min_soc_on_grid: 0
+        value: 20
 
-  - id: critical_protection_low_soc
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.battery_soc
-      below: 11
-    action:
-      service: set_force_discharge_power
+## Grid Backup Charge Stop 2 PM
+- id: grid_backup_charge_stop_2pm
+  alias: "Grid Backup Charge Stop 2 PM"
+  description: "Stop charging from grid at 2 PM"
+  trigger:
+    - platform: time
+      at: "14:00:00"
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.min_soc_on_grid
       data:
-        force_discharge_power: 0
+        value: 100
 
-  - id: critical_protection_resume
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.battery_soc
-      above: 14
-    condition:
-      - condition: numeric_state
-        entity_id: sensor.battery_soc
-        above: 14
-    action:
-      service: set_force_discharge_power
+## Critical Protection Low SOC
+- id: critical_protection_low_soc
+  alias: "Critical Protection Low SOC"
+  description: "Engages critical protection measures when SOC is low"
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      below: 10
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
       data:
-        force_discharge_power: 15000
+        value: 0
 
-  - id: solar_priority_disable_discharge
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.solar_power
-      above: 2000
-    action:
-      service: set_force_discharge_power
+## Critical Protection Resume
+- id: critical_protection_resume
+  alias: "Critical Protection Resume"
+  description: "Resumes regular operation when SOC is safe"
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_battery_soc_1
+      above: 20
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
       data:
-        force_discharge_power: 0
+        value: 50
 
-  - id: solar_priority_resume_discharge
-    trigger:
-      platform: numeric_state
-      entity_id: sensor.solar_power
-      below: 1999
-    condition:
-      - condition: numeric_state
-        entity_id: sensor.feed_in_price
-        above: 0.15
-      - condition: numeric_state
-        entity_id: sensor.battery_soc
-        above: 40
-    action:
-      service: set_force_discharge_power
+## Solar Priority Disable Discharge
+- id: solar_priority_disable_discharge
+  alias: "Solar Priority Disable Discharge"
+  description: "Disables discharge when solar power is available"
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_solar_power
+      above: 100
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
       data:
-        force_discharge_power: 15000
+        value: 0
+
+## Solar Priority Resume Discharge
+- id: solar_priority_resume_discharge
+  alias: "Solar Priority Resume Discharge"
+  description: "Resumes discharge when solar priority is no longer met"
+  trigger:
+    - platform: state
+      entity_id: sensor.home_automation_solar_power
+      below: 50
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.force_discharge_power
+      data:
+        value: 50
