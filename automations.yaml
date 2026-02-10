@@ -1,1 +1,31 @@
-- id: master_automation_strategy\n  alias: Master Automation Strategy\n  description: 'This automation manages the overall automation strategies.'\n  trigger: ...\n  action: ...\n\n- id: immediate_spike_discharge\n  alias: Immediate Spike Discharge\n  description: 'Discharges immediately during spikes.'\n  trigger: ...\n  action: ...\n\n- id: secondary_rule_discharge\n  alias: Secondary Rule Discharge\n  description: 'Discharges based on secondary rules.'\n  trigger: ...\n  action: ...\n\n- id: secondary_rule_stop_discharge\n  alias: Secondary Rule Stop Discharge\n  description: 'Stops discharge based on secondary rules.'\n  trigger: ...\n  action: ...\n\n- id: grid_backup_charge_1_pm\n  alias: Grid Backup Charge 1 PM\n  description: 'Charges from the grid at 1 PM.'\n  trigger: ...\n  action: ...\n\n- id: grid_backup_charge_stop_2_pm\n  alias: Grid Backup Charge Stop 2 PM\n  description: 'Stops charging from the grid at 2 PM.'\n  trigger: ...\n  action: ...\n\n- id: critical_protection_low_soc\n  alias: Critical Protection Low SOC\n  description: 'Protects the system when SOC is low.'\n  trigger: ...\n  action: ...\n\n- id: critical_protection_resume\n  alias: Critical Protection Resume\n  description: 'Resumes operations after critical protection.'\n  trigger: ...\n  action: ...\n\n- id: solar_priority_disable_discharge\n  alias: Solar Priority Disable Discharge\n  description: 'Disables discharge prioritization for solar.'\n  trigger: ...\n  action: ...\n\n- id: solar_priority_resume_discharge\n  alias: Solar Priority Resume Discharge\n  description: 'Resumes discharge prioritization for solar.'\n  trigger: ...\n  action: ...\n
+# Core Automations
+
+1. **Master Automation Strategy**
+   - Description of the Master Automation Strategy.
+
+2. **Immediate Spike Discharge**
+   - Description of Immediate Spike Discharge automation.
+
+3. **Secondary Rule Discharge**
+   - Description of Secondary Rule Discharge automation.
+
+4. **Secondary Rule Stop Discharge**
+   - Description of Secondary Rule Stop Discharge automation.
+
+5. **Grid Backup Charge 1 PM**
+   - Description of Grid Backup Charge 1 PM automation.
+
+6. **Grid Backup Charge Stop 2 PM**
+   - Description of Grid Backup Charge Stop 2 PM automation.
+
+7. **Critical Protection Low SOC**
+   - Description of Critical Protection Low SOC automation.
+
+8. **Critical Protection Resume**
+   - Description of Critical Protection Resume automation.
+
+9. **Solar Priority Disable Discharge**
+   - Description of Solar Priority Disable Discharge automation.
+
+10. **Solar Priority Resume Discharge**
+   - Description of Solar Priority Resume Discharge automation.
