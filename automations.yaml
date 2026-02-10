@@ -2,74 +2,104 @@
   trigger:
     - platform: numeric_state
       entity_id: sensor.home_assistant_feed_in_price
+      above: 1.00
   condition:
-    - condition: template
-      value_template: '{{ states.sensor.home_assistant_feed_in_price.state | float > 1.0 and states.binary_sensor.home_assistant_price_spike.state }}'
+    - condition: state
+      entity_id: binary_sensor.home_assistant_price_spike
+      state: 'on'
   action:
     - service: number.set_value
       target:
         entity_id: number.home_automation_force_discharge_power
       data:
         value: 0
-*    - service: number.set_value
-      target:
-        entity_id: number.home_automation_max_discharge_current
-      data:
-        value: 15000
-      
-- alias: Secondary Rule Discharge
+
+- alias: Immediate Spike Discharge
   trigger:
-    - platform: state
-      entity_id: sensor.home_automation_solar_power
+    - platform: numeric_state
+      entity_id: sensor.home_assistant_feed_in_price
+      above: 0.40
   condition:
-    - condition: template
-      value_template: '{{ states.sensor.home_assistant_feed_in_price.state | float > 0.15 and states.sensor.home_automation_solar_power.state | float < 2 }}'
+    - condition: state
+      entity_id: binary_sensor.home_assistant_price_spike
+      state: 'on'
+    - condition: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      above: 40
   action:
     - service: number.set_value
       target:
         entity_id: number.home_automation_force_discharge_power
       data:
         value: 15000
-  
-- alias: Grid Backup Charge
+
+- alias: Secondary Rule Discharge
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.home_assistant_feed_in_price
+      above: 0.15
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.home_automation_solar_power
+      below: 2000
+    - condition: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      above: 40
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 15000
+
+- alias: Secondary Rule Stop Discharge
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      below: 41
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      below: 41
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 0
+
+- alias: Grid Backup Charge 1 PM
   trigger:
     - platform: time
-      at: '13:00'
-    - platform: time
-      at: '14:00'
+      at: '13:00:00'
   condition:
     - condition: numeric_state
       entity_id: sensor.home_automation_battery_soc_1
       below: 40
-  action:
-    - choose:
-        - conditions:
-            - condition: numeric_state
-              entity_id: sensor.home_assistant_feed_in_price
-              below: 0.06
-          sequence:
-            - service: number.set_value
-              target:
-                entity_id: number.home_automation_max_charge_current
-              data:
-                value: 0.5  
-    - conditions:
-        - condition: state
-          entity_id: number.home_automation_max_charge_current
-          state: '50%'
-      action:
-      - service: number.set_value
-        target:
-          entity_id: number.home_automation_max_charge_current
-        data:
-          value: 0
-
-- alias: Negative Pricing Charge
-  trigger:
-    - platform: state
-      entity_id: sensor.home_assistant_feed_in_price
-  condition:
     - condition: numeric_state
+      entity_id: sensor.home_assistant_general_price
+      below: 0.06
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_min_soc_on_grid
+      data:
+        value: 50
+
+- alias: Grid Backup Charge Stop 2 PM
+  trigger:
+    - platform: time
+      at: '14:00:00'
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_min_soc_on_grid
+      data:
+        value: 0
+
+- alias: Negative Pricing Curtail Solar
+  trigger:
+    - platform: numeric_state
       entity_id: sensor.home_assistant_feed_in_price
       below: -0.01
   action:
@@ -78,15 +108,17 @@
         entity_id: number.home_automation_force_charge_power
       data:
         value: 0
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_max_charge_current
+      data:
+        value: 15000
 
-- alias: Critical Protection
+- alias: Critical Protection Low SOC
   trigger:
-    - platform: state
+    - platform: numeric_state
       entity_id: sensor.home_automation_battery_soc_1
-  condition:
-    - condition: numeric_state
-      entity_id: sensor.home_automation_battery_soc_1
-      below: 10
+      below: 11
   action:
     - service: number.set_value
       target:
@@ -94,17 +126,49 @@
       data:
         value: 0
 
-- alias: Solar Priority
+- alias: Critical Protection Resume
   trigger:
-    - platform: state
-      entity_id: sensor.home_automation_solar_power
+    - platform: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      above: 14
   condition:
     - condition: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      above: 14
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 15000
+
+- alias: Solar Priority Disable Discharge
+  trigger:
+    - platform: numeric_state
       entity_id: sensor.home_automation_solar_power
-      above: 2
+      above: 2000
   action:
     - service: number.set_value
       target:
         entity_id: number.home_automation_force_discharge_power
       data:
         value: 0
+
+- alias: Solar Priority Resume Discharge
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.home_automation_solar_power
+      below: 1999
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.home_assistant_feed_in_price
+      above: 0.15
+    - condition: numeric_state
+      entity_id: sensor.home_automation_battery_soc_1
+      above: 40
+  action:
+    - service: number.set_value
+      target:
+        entity_id: number.home_automation_force_discharge_power
+      data:
+        value: 15000
