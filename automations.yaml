@@ -1,31 +1,134 @@
-# Core Automations
+automations:
+  - id: master_automation_strategy
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.feed_in_price
+      above: 1.00
+    condition:
+      - condition: state
+        entity_id: input_boolean.price_spike_state
+        state: 'on'
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 0
 
-1. **Master Automation Strategy**
-   - Description of the Master Automation Strategy.
+  - id: immediate_spike_discharge
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.feed_in_price
+      above: 0.40
+    condition:
+      - condition: state
+        entity_id: input_boolean.price_spike_state
+        state: 'on'
+      - condition: numeric_state
+        entity_id: sensor.battery_soc
+        above: 40
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 15000
 
-2. **Immediate Spike Discharge**
-   - Description of Immediate Spike Discharge automation.
+  - id: secondary_rule_discharge
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.feed_in_price
+      above: 0.15
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.solar_power
+        below: 2000
+      - condition: numeric_state
+        entity_id: sensor.battery_soc
+        above: 40
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 15000
 
-3. **Secondary Rule Discharge**
-   - Description of Secondary Rule Discharge automation.
+  - id: secondary_rule_stop_discharge
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.battery_soc
+      below: 41
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 0
 
-4. **Secondary Rule Stop Discharge**
-   - Description of Secondary Rule Stop Discharge automation.
+  - id: grid_backup_charge_1_pm
+    trigger:
+      platform: time
+      at: '13:00:00'
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.battery_soc
+        below: 40
+      - condition: numeric_state
+        entity_id: sensor.general_price
+        below: 0.06
+    action:
+      service: set_min_soc_on_grid
+      data:
+        min_soc_on_grid: 50
 
-5. **Grid Backup Charge 1 PM**
-   - Description of Grid Backup Charge 1 PM automation.
+  - id: grid_backup_charge_stop_2_pm
+    trigger:
+      platform: time
+      at: '14:00:00'
+    action:
+      service: set_min_soc_on_grid
+      data:
+        min_soc_on_grid: 0
 
-6. **Grid Backup Charge Stop 2 PM**
-   - Description of Grid Backup Charge Stop 2 PM automation.
+  - id: critical_protection_low_soc
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.battery_soc
+      below: 11
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 0
 
-7. **Critical Protection Low SOC**
-   - Description of Critical Protection Low SOC automation.
+  - id: critical_protection_resume
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.battery_soc
+      above: 14
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.battery_soc
+        above: 14
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 15000
 
-8. **Critical Protection Resume**
-   - Description of Critical Protection Resume automation.
+  - id: solar_priority_disable_discharge
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.solar_power
+      above: 2000
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 0
 
-9. **Solar Priority Disable Discharge**
-   - Description of Solar Priority Disable Discharge automation.
-
-10. **Solar Priority Resume Discharge**
-   - Description of Solar Priority Resume Discharge automation.
+  - id: solar_priority_resume_discharge
+    trigger:
+      platform: numeric_state
+      entity_id: sensor.solar_power
+      below: 1999
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.feed_in_price
+        above: 0.15
+      - condition: numeric_state
+        entity_id: sensor.battery_soc
+        above: 40
+    action:
+      service: set_force_discharge_power
+      data:
+        force_discharge_power: 15000
